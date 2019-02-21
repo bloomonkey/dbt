@@ -28,6 +28,14 @@ jobs:
   dependsOn: UnitTest
 
   steps:
+  # the vmImage that can run docker containers can't use `UsePythonVersion`...
+  - script: |
+      choco install python3 --version 3.5.4
+      refreshenv
+      python -m pip install --upgrade pip && pip install tox
+    displayName: Install python 3.5 and dependencies
+
+  # TODO: once this works, move it to be first
   - task: Docker@1
     inputs:
       command: Run
@@ -39,12 +47,6 @@ jobs:
         POSTGRES_PASSWORD=password
         POSTGRES_DB=dbt
       runInBackground: true
-
-  # the vmImage that can run docker containers can't use `UsePythonVersion`...
-  - script: choco install python3 --version 3.5.4
-
-  - script: python -m pip install --upgrade pip && pip install tox
-    displayName: 'Install dependencies'
 
   - bash: test/setup_db.sh
 
