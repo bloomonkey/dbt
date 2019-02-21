@@ -9,7 +9,7 @@ trigger:
 jobs:
 - job: UnitTest
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'win1803'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -24,7 +24,7 @@ jobs:
 
 - job: PostgresIntegrationTest
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'win1803'
   dependsOn: UnitTest
 
   steps:
@@ -54,7 +54,7 @@ jobs:
 
 - job: AdapterIntegrationTest
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'win1803'
   dependsOn: PostgresIntegrationTest
   strategy:
     matrix:
