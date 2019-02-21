@@ -28,12 +28,13 @@ jobs:
   # dependsOn: UnitTest
 
   steps:
-  # the vmImage that can run docker containers can't use `UsePythonVersion`.
-  # chocolatey suggests using 'refreshenv' here but all subsequent commands will be lost!
+  # the vmImage that can run docker containers ('win1803') can't use `UsePythonVersion`.
+  # chocolatey suggests using 'refreshenv' here, but all subsequent commands will be lost, so don't do it
   - script: |
       choco install python3 --version 3.5.4
-      C:\Python35\python.exe -m pip install --upgrade pip
-      C:\Python35\python.exe -m pip install tox psycopg2
+      call RefreshEnv.cmd
+      python -m pip install --upgrade pip
+      python -m pip install tox psycopg2
     displayName: Install python 3.5 and dependencies
 
   # TODO: once this works, move it to be first
@@ -49,12 +50,15 @@ jobs:
         POSTGRES_DB=dbt
       runInBackground: true
 
-  - bash: |
+  - script: |
       choco install postgresql --params '/Password:password' --params-global
+      call RefreshEnv.cmd
       PGPASSWORD=password test/setup_db.sh
     displayName: Run databse setup script
 
-  - script: C:\Python35\python.exe -m tox -e pywin-postgres
+  - bash: ${PYTHON}\python.exe -m tox -e pywin-postgres
+    env:
+      PYTHON: C:\Python35
     displayName: Run integration tests
 
 - job: AdapterIntegrationTest
