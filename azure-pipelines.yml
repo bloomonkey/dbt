@@ -9,7 +9,7 @@ trigger:
 jobs:
 - job: UnitTest
   pool:
-    vmImage: 'win1803'
+    vmImage: 'vs2017-win2016'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -40,10 +40,8 @@ jobs:
         POSTGRES_DB=dbt
       runInBackground: true
 
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.5'
-      architecture: 'x64'
+  # the vmImage that can run docker containers can't use `UsePythonVersion`...
+  - script: choco install python3 --version 3.5.4
 
   - script: python -m pip install --upgrade pip && pip install tox
     displayName: 'Install dependencies'
@@ -54,7 +52,7 @@ jobs:
 
 - job: AdapterIntegrationTest
   pool:
-    vmImage: 'win1803'
+    vmImage: 'vs2017-win2016'
   dependsOn: PostgresIntegrationTest
   strategy:
     matrix:
