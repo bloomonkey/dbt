@@ -1,0 +1,64 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+jobs:
+- job: UnitTest
+  pool:
+    vmImage: 'vs2017-win2016'
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.5'
+      architecture: 'x64'
+
+  - script: python -m pip install --upgrade pip && pip install tox
+    displayName: 'Install dependencies'
+
+  - script: python -m tox -e pywin-unit
+
+- job: 'Test'
+  pool:
+    vmImage: 'vs2017-win2016'
+  dependsOn: UnitTest
+  strategy:
+    matrix:
+      Postgres:
+        tox.target: pywin-postgres
+      Snowflake:
+        tox.target: pywin-snowflake
+      Bigquery:
+        tox.target: pywin-bigquery
+      Redshift:
+        tox.target: pywin-redshift
+    maxParallel: 4
+
+  steps:
+
+  - task: DockerCompose@0
+    displayName: Run postgres
+    inputs:
+      action: Run postgres
+      dockerComposeFile: docker-compose.yml
+      projectName: $(Build.Repository.Name)
+      serviceName: postgres
+      qualifyImageNames: true
+      buildImages: true
+      abortOnContainerExit: true
+      detached: true
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.5'
+      architecture: 'x64'
+
+  - script: python -m pip install --upgrade pip && pip install tox
+    displayName: 'Install dependencies'
+
+  - bash: test/setup_db.sh
+
+  - script: python -m tox -e $(tox.target)
