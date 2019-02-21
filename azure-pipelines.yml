@@ -30,15 +30,15 @@ jobs:
   steps:
   - task: Docker@1
     inputs:
-      command: run
-      imageName: postgres
-      runInBackground: true
+      command: Run
+      imageName: stellirin/postgres-windows
       qualifyImageName: false
       containerName: database
       envVars: |
         POSTGRES_USER=root
         POSTGRES_PASSWORD=password
         POSTGRES_DB=dbt
+      runInBackground: true
 
   - task: UsePythonVersion@0
     inputs:
