@@ -28,16 +28,6 @@ jobs:
   # dependsOn: UnitTest
 
   steps:
-  # the vmImage that can run docker containers ('win1803') can't use `UsePythonVersion`.
-  # chocolatey suggests using 'refreshenv' here, but all subsequent commands will be lost, so don't do it
-  - script: |
-      choco install python3 --version 3.5.4
-      call RefreshEnv.cmd
-      python -m pip install --upgrade pip
-      python -m pip install tox psycopg2
-    displayName: Install python 3.5 and dependencies
-
-  # TODO: once this works, move it to be first
   - task: Docker@1
     inputs:
       command: Run
@@ -50,10 +40,20 @@ jobs:
         POSTGRES_DB=dbt
       runInBackground: true
 
+  # the vmImage that can run docker containers ('win1803') can't use `UsePythonVersion`.
+  # chocolatey suggests using 'refreshenv' here, but all subsequent commands will be lost, so don't do it
+  # instead use the (undocumented?) `call RefreshEnv.cmd`: https://github.com/chocolatey/choco/issues/1461#issuecomment-348136706
+  - script: |
+      choco install python3 --version 3.5.4
+      call RefreshEnv.cmd
+      python -m pip install --upgrade pip
+      python -m pip install tox
+    displayName: Install python 3.5 and dependencies
+
   - script: |
       choco install postgresql --params '/Password:password' --params-global
       call RefreshEnv.cmd
-      PGPASSWORD=password test/setup_db.sh
+      bash -c 'PGPASSWORD=password test/setup_db.sh'
     displayName: Run databse setup script
 
   - bash: ${PYTHON}\python.exe -m tox -e pywin-postgres
@@ -61,21 +61,12 @@ jobs:
       PYTHON: C:\Python35
     displayName: Run integration tests
 
-- job: AdapterIntegrationTest
+# These three are all similar except secure environment variables, which MUST be passed along to their tasks,
+# but there's probably a better way to do this!
+- job: SnowflakeIntegrationTest
   pool:
     vmImage: 'vs2017-win2016'
   dependsOn: PostgresIntegrationTest
-  strategy:
-    matrix:
-      Snowflake:
-        tox.target: pywin-snowflake
-      Bigquery:
-        tox.target: pywin-bigquery
-      Redshift:
-        tox.target: pywin-redshift
-    maxParallel: 4
-
-  steps:
 
   - task: UsePythonVersion@0
     inputs:
@@ -85,5 +76,50 @@ jobs:
   - script: python -m pip install --upgrade pip && pip install tox
     displayName: 'Install dependencies'
 
-  - script: python -m tox -e $(tox.target)
+  - script: python -m tox -e pywin-snowflake
+    env:
+      SNOWFLAKE_TEST_ACCOUNT: $(SNOWFLAKE_TEST_ACCOUNT)
+      SNOWFLAKE_TEST_PASSWORD: $(SNOWFLAKE_TEST_PASSWORD)
+      SNOWFLAKE_TEST_USER: $(SNOWFLAKE_TEST_USER)
+      SNOWFLAKE_TEST_WAREHOUSE: $(SNOWFLAKE_TEST_WAREHOUSE)
+    displayName: Run integration tests
+
+- job: BigQueryIntegrationTest
+  pool:
+    vmImage: 'vs2017-win2016'
+  dependsOn: PostgresIntegrationTest
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.5'
+      architecture: 'x64'
+
+  - script: python -m pip install --upgrade pip && pip install tox
+    displayName: 'Install dependencies'
+
+  - script: python -m tox -e pywin-bigquery
+    env:
+      BIGQUERY_SERVICE_ACCOUNT_JSON: $(BIGQUERY_SERVICE_ACCOUNT_JSON)
+    displayName: Run integration tests
+
+- job: RedshiftIntegrationTest
+  pool:
+    vmImage: 'vs2017-win2016'
+  dependsOn: PostgresIntegrationTest
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.5'
+      architecture: 'x64'
+
+  - script: python -m pip install --upgrade pip && pip install tox
+    displayName: 'Install dependencies'
+
+  - script: python -m tox -e pywin-redshift
+    env:
+      REDSHIFT_TEST_DBNAME: $(REDSHIFT_TEST_DBNAME)
+      SNOWFLAKE_TEST_PASS: $(SNOWFLAKE_TEST_PASS)
+      SNOWFLAKE_TEST_USER: $(SNOWFLAKE_TEST_USER)
+      REDSHIFT_TEST_PORT: $(REDSHIFT_TEST_PORT)
+      REDSHIFT_TEST_HOST: $(REDSHIFT_TEST_HOST)
     displayName: Run integration tests
