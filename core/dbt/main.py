@@ -737,3 +737,7 @@ def parse_args(args):
         p.exit(1)
 
     return parsed
+
+
+if __name__ == '__main__':
+    main()
