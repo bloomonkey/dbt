@@ -1,0 +1,2 @@
+# tell git (especially on windows) to keep the docs tests' sql files with LF only
+test/integration/test/integration/029_docs_generate_tests/*.sql eol=lf
