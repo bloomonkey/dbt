@@ -56,6 +56,13 @@ jobs:
       bash -c 'PGPASSWORD=password test/setup_db.sh'
     displayName: Run databse setup script
 
+    # https://developercommunity.visualstudio.com/content/problem/388664/azure-pipelines-get-sources-not-obeying-gitattribu.html
+  - bash: |
+      git config --global core.autocrlf false
+      git rm -rf --cached .
+      git reset --hard HEAD
+    displayName: Fix Azure Pipelines ignoring .gitattributes
+
   - bash: python.exe -m tox -e pywin-postgres
     displayName: Run integration tests
 
@@ -74,6 +81,11 @@ jobs:
 
   - script: python -m pip install --upgrade pip && pip install tox
     displayName: 'Install dependencies'
+
+  - bash: |
+      git rm -rf --cached .
+      git reset --hard HEAD
+    displayName: Fix Azure Pipelines ignoring .gitattributes
 
   - script: python -m tox -e pywin-snowflake
     env:
@@ -97,6 +109,11 @@ jobs:
   - script: python -m pip install --upgrade pip && pip install tox
     displayName: 'Install dependencies'
 
+  - bash: |
+      git rm -rf --cached .
+      git reset --hard HEAD
+    displayName: Fix Azure Pipelines ignoring .gitattributes
+
   - script: python -m tox -e pywin-bigquery
     env:
       BIGQUERY_SERVICE_ACCOUNT_JSON: $(BIGQUERY_SERVICE_ACCOUNT_JSON)
@@ -115,6 +132,11 @@ jobs:
 
   - script: python -m pip install --upgrade pip && pip install tox
     displayName: 'Install dependencies'
+
+  - bash: |
+      git rm -rf --cached .
+      git reset --hard HEAD
+    displayName: Fix Azure Pipelines ignoring .gitattributes
 
   - script: python -m tox -e pywin-redshift
     env:
