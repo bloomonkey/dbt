@@ -10,9 +10,24 @@ from test.integration.base import DBTIntegrationTest, use_profile, AnyFloat, \
 from dbt.compat import basestring
 
 
+def _newlines(data):
+    first = False
+    if isinstance(data, basestring):
+        data = [data]
+        first = True
+    result = []
+    for line in data:
+        if os.name == 'nt':
+            line = line.replace('\r\n', '\n')
+        result.append(line)
+    if first:
+        result = result[0]
+    return result
+
+
 def _read_file(path):
     with open(path, 'r') as fp:
-        return fp.read()
+        return _newlines(fp.read())
 
 
 def _normalize(path):
@@ -36,26 +51,6 @@ def walk_files(path):
 
 class TestDocsGenerate(DBTIntegrationTest):
     setup_alternate_db = True
-
-    @classmethod
-    def setUpClass(cls):
-        if os.name != 'nt':
-            return
-        # this is an absurd thing to do, but I honestly have no other idea how
-        # to handle Azure Pipleines' crazy `git clone` behavior: we're going to
-        # open up all the models and convert crlf to lf on windows
-        for path in walk_files(cls.dir('models')):
-            cls._fixup_filepath(path)
-
-    @classmethod
-    def _fixup_filepath(cls, path):
-        newpath = path + '.new'
-        with open(path) as ifp:
-            with open(newpath, 'w') as ofp:
-                for line in ifp:
-                    ofp.write(line.rstrip('\r\n')+'\n')
-        os.remove(path)
-        os.rename(newpath, path)
 
     def setUp(self):
         super(TestDocsGenerate, self).setUp()
@@ -497,7 +492,6 @@ class TestDocsGenerate(DBTIntegrationTest):
             seed_stats=self._no_stats(),
             model_database=self.default_database
         )
-
 
     @staticmethod
     def _clustered_bigquery_columns(update_type):
@@ -1059,7 +1053,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': self.dir('ref_models/ephemeral_copy.sql'),
                     'package_name': 'test',
                     'path': 'ephemeral_copy.sql',
-                    'raw_sql': (
+                    'raw_sql': _newlines(
                         '{{\n  config(\n    materialized = "ephemeral"\n  )\n}}'
                         '\n\nselect * from {{ source("my_source", "my_table") }}'
                     ),
@@ -1123,7 +1117,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'ephemeral_summary.sql',
-                    'raw_sql': (
+                    'raw_sql': _newlines(
                         '{{\n  config(\n    materialized = "table"\n  )\n}}\n\n'
                         'select first_name, count(*) as ct from '
                         "{{ref('ephemeral_copy')}}\ngroup by first_name\n"
@@ -1187,7 +1181,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'view_summary.sql',
-                    'raw_sql': (
+                    'raw_sql': _newlines(
                         '{{\n  config(\n    materialized = "view"\n  )\n}}\n\n'
                         'select first_name, ct from '
                         "{{ref('ephemeral_summary')}}\norder by ct asc"
@@ -1822,6 +1816,8 @@ class TestDocsGenerate(DBTIntegrationTest):
                 compiled_database, compiled_schema, compiled_seed
             )
 
+        compiled_sql = _newlines(compiled_sql)
+
         return [
             {
                 'error': None,
@@ -2071,23 +2067,23 @@ class TestDocsGenerate(DBTIntegrationTest):
     def expected_postgres_references_run_results(self):
         my_schema_name = self.unique_schema()
         config_vars = {'alternate_db': self.default_database}
-        ephemeral_compiled_sql = (
+        ephemeral_compiled_sql = _newlines(
             '\n\nselect first_name, count(*) as ct from '
             '__dbt__CTE__ephemeral_copy\ngroup by first_name\n'
             'order by first_name asc'
         )
 
-        cte_sql = (
+        cte_sql = _newlines(
             ' __dbt__CTE__ephemeral_copy as (\n\n\nselect * from "{}"."{}"."seed"\n)'
         ).format(self.default_database, my_schema_name)
 
-        ephemeral_injected_sql = (
+        ephemeral_injected_sql = _newlines(
             '\n\nwith{}select first_name, count(*) as ct from '
             '__dbt__CTE__ephemeral_copy\ngroup by first_name\n'
             'order by first_name asc'
         ).format(cte_sql)
 
-        view_compiled_sql = (
+        view_compiled_sql = _newlines(
             '\n\nselect first_name, ct from "{}"."{}".ephemeral_summary\n'
             'order by ct asc'
         ).format(self.default_database, my_schema_name)
@@ -2160,7 +2156,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'ephemeral_summary.sql',
-                    'raw_sql': (
+                    'raw_sql': _newlines(
                         '{{\n  config(\n    materialized = "table"\n  )\n}}\n'
                         '\nselect first_name, count(*) as ct from '
                         "{{ref('ephemeral_copy')}}\ngroup by first_name\n"
@@ -2247,7 +2243,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'view_summary.sql',
-                    'raw_sql': (
+                    'raw_sql': _newlines(
                         '{{\n  config(\n    materialized = "view"\n  )\n}}\n\n'
                         'select first_name, ct from '
                         "{{ref('ephemeral_summary')}}\norder by ct asc"
