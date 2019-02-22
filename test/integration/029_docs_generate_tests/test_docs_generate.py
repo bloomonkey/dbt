@@ -11,7 +11,7 @@ from dbt.compat import basestring
 
 
 def _read_file(path):
-    with open(path) as fp:
+    with open(path, 'r') as fp:
         return fp.read()
 
 
@@ -28,8 +28,35 @@ def _normalize(path):
     return os.path.normcase(os.path.normpath(path))
 
 
+def walk_files(path):
+    for root, dirs, files in os.walk(path):
+        for basename in files:
+            yield os.path.join(root, basename)
+
+
 class TestDocsGenerate(DBTIntegrationTest):
     setup_alternate_db = True
+
+    @classmethod
+    def setUpClass(cls):
+        if os.name != 'nt':
+            return
+        # this is an absurd thing to do, but I honestly have no other idea how
+        # to handle Azure Pipleines' crazy `git clone` behavior: we're going to
+        # open up all the models and convert crlf to lf on windows
+        for path in walk_files(cls.dir('models')):
+            cls._fixup_filepath(path)
+
+    @classmethod
+    def _fixup_filepath(cls, path):
+        newpath = path + '.new'
+        with open(path) as ifp:
+            with open(newpath, 'w') as ofp:
+                for line in ifp:
+                    ofp.write(line.rstrip('\r\n')+'\n')
+        os.remove(path)
+        os.rename(newpath, path)
+
     def setUp(self):
         super(TestDocsGenerate, self).setUp()
         self.maxDiff = None
