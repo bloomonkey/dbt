@@ -66,6 +66,7 @@ jobs:
   - script: |
       dir C:\
       dir C:\Python35
+      echo %PATH%
       C:\Python35\python.exe -m tox -e pywin-postgres
     env:
       PYTHON: C:\Python35

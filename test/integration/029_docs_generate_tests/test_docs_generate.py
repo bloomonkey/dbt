@@ -24,10 +24,25 @@ def _newlines(data):
         result = result[0]
     return result
 
+def _add_newlines(data):
+    first = False
+    if isinstance(data, basestring):
+        data = [data]
+        first = True
+    result = []
+    for line in data:
+        if os.name == 'nt':
+            line = line.replace('\n', '\r\n')
+        result.append(line)
+    if first:
+        result = result[0]
+    return result
+
+
 
 def _read_file(path):
     with open(path, 'r') as fp:
-        return _newlines(fp.read())
+        return fp.read()
 
 
 def _normalize(path):
@@ -53,6 +68,7 @@ class TestDocsGenerate(DBTIntegrationTest):
     setup_alternate_db = True
 
     def setUp(self):
+        self.assertEqual(os.name, 'nt')
         super(TestDocsGenerate, self).setUp()
         self.maxDiff = None
 
@@ -824,7 +840,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'path': 'model.sql',
                     'original_file_path': model_sql_path,
                     'package_name': 'test',
-                    'raw_sql': _read_file(model_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(model_sql_path).rstrip('\r\n'),
                     'refs': [['seed']],
                     'sources': [],
                     'depends_on': {'nodes': ['seed.test.seed'], 'macros': []},
@@ -1053,7 +1069,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': self.dir('ref_models/ephemeral_copy.sql'),
                     'package_name': 'test',
                     'path': 'ephemeral_copy.sql',
-                    'raw_sql': _newlines(
+                    'raw_sql': _add_newlines(
                         '{{\n  config(\n    materialized = "ephemeral"\n  )\n}}'
                         '\n\nselect * from {{ source("my_source", "my_table") }}'
                     ),
@@ -1117,7 +1133,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'ephemeral_summary.sql',
-                    'raw_sql': _newlines(
+                    'raw_sql': _add_newlines(
                         '{{\n  config(\n    materialized = "table"\n  )\n}}\n\n'
                         'select first_name, count(*) as ct from '
                         "{{ref('ephemeral_copy')}}\ngroup by first_name\n"
@@ -1181,7 +1197,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'view_summary.sql',
-                    'raw_sql': _newlines(
+                    'raw_sql': _add_newlines(
                         '{{\n  config(\n    materialized = "view"\n  )\n}}\n\n'
                         'select first_name, ct from '
                         "{{ref('ephemeral_summary')}}\norder by ct asc"
@@ -1387,7 +1403,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': clustered_sql_path,
                     'package_name': 'test',
                     'path': 'clustered.sql',
-                    'raw_sql': _read_file(clustered_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(clustered_sql_path).rstrip('\r\n'),
                     'refs': [['seed']],
                     'resource_type': 'model',
                     'root_path': os.getcwd(),
@@ -1443,7 +1459,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': multi_clustered_sql_path,
                     'package_name': 'test',
                     'path': 'multi_clustered.sql',
-                    'raw_sql': _read_file(multi_clustered_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(multi_clustered_sql_path).rstrip('\r\n'),
                     'refs': [['seed']],
                     'resource_type': 'model',
                     'root_path': os.getcwd(),
@@ -1500,7 +1516,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': nested_view_sql_path,
                     'package_name': 'test',
                     'path': 'nested_view.sql',
-                    'raw_sql': _read_file(nested_view_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(nested_view_sql_path).rstrip('\r\n'),
                     'refs': [['nested_table']],
                     'resource_type': 'model',
                     'root_path': os.getcwd(),
@@ -1557,7 +1573,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'original_file_path': nested_table_sql_path,
                     'package_name': 'test',
                     'path': 'nested_table.sql',
-                    'raw_sql': _read_file(nested_table_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(nested_table_sql_path).rstrip('\r\n'),
                     'refs': [],
                     'resource_type': 'model',
                     'root_path': os.getcwd(),
@@ -1641,7 +1657,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     "path": "model.sql",
                     "original_file_path": model_sql_path,
                     "package_name": "test",
-                    "raw_sql": _read_file(model_sql_path).rstrip('\n'),
+                    "raw_sql": _read_file(model_sql_path).rstrip('\r\n'),
                     "refs": [["seed"]],
                     "sources": [],
                     "depends_on": {
@@ -1816,7 +1832,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                 compiled_database, compiled_schema, compiled_seed
             )
 
-        compiled_sql = _newlines(compiled_sql)
+        compiled_sql = _add_newlines(compiled_sql)
 
         return [
             {
@@ -1855,7 +1871,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': schema_yml_path,
                     'path': 'model.sql',
-                    'raw_sql': _read_file(model_sql_path).rstrip('\n'),
+                    'raw_sql': _read_file(model_sql_path).rstrip('\r\n'),
                     'refs': [['seed']],
                     'resource_type': 'model',
                     'root_path': os.getcwd(),
@@ -2067,23 +2083,23 @@ class TestDocsGenerate(DBTIntegrationTest):
     def expected_postgres_references_run_results(self):
         my_schema_name = self.unique_schema()
         config_vars = {'alternate_db': self.default_database}
-        ephemeral_compiled_sql = _newlines(
+        ephemeral_compiled_sql = _add_newlines(
             '\n\nselect first_name, count(*) as ct from '
             '__dbt__CTE__ephemeral_copy\ngroup by first_name\n'
             'order by first_name asc'
         )
 
-        cte_sql = _newlines(
+        cte_sql = _add_newlines(
             ' __dbt__CTE__ephemeral_copy as (\n\n\nselect * from "{}"."{}"."seed"\n)'
         ).format(self.default_database, my_schema_name)
 
-        ephemeral_injected_sql = _newlines(
+        ephemeral_injected_sql = _add_newlines(
             '\n\nwith{}select first_name, count(*) as ct from '
             '__dbt__CTE__ephemeral_copy\ngroup by first_name\n'
             'order by first_name asc'
         ).format(cte_sql)
 
-        view_compiled_sql = _newlines(
+        view_compiled_sql = _add_newlines(
             '\n\nselect first_name, ct from "{}"."{}".ephemeral_summary\n'
             'order by ct asc'
         ).format(self.default_database, my_schema_name)
@@ -2156,7 +2172,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'ephemeral_summary.sql',
-                    'raw_sql': _newlines(
+                    'raw_sql': _add_newlines(
                         '{{\n  config(\n    materialized = "table"\n  )\n}}\n'
                         '\nselect first_name, count(*) as ct from '
                         "{{ref('ephemeral_copy')}}\ngroup by first_name\n"
@@ -2243,7 +2259,7 @@ class TestDocsGenerate(DBTIntegrationTest):
                     'package_name': 'test',
                     'patch_path': self.dir('ref_models/schema.yml'),
                     'path': 'view_summary.sql',
-                    'raw_sql': _newlines(
+                    'raw_sql': _add_newlines(
                         '{{\n  config(\n    materialized = "view"\n  )\n}}\n\n'
                         'select first_name, ct from '
                         "{{ref('ephemeral_summary')}}\norder by ct asc"
