@@ -56,9 +56,7 @@ jobs:
       bash -c 'PGPASSWORD=password test/setup_db.sh'
     displayName: Run databse setup script
 
-  - bash: ${PYTHON}\python.exe -m tox -e pywin-postgres
-    env:
-      PYTHON: C:\Python35
+  - bash: python.exe -m tox -e pywin-postgres
     displayName: Run integration tests
 
 # These three are all similar except secure environment variables, which MUST be passed along to their tasks,
@@ -121,8 +119,8 @@ jobs:
   - script: python -m tox -e pywin-redshift
     env:
       REDSHIFT_TEST_DBNAME: $(REDSHIFT_TEST_DBNAME)
-      SNOWFLAKE_TEST_PASS: $(SNOWFLAKE_TEST_PASS)
-      SNOWFLAKE_TEST_USER: $(SNOWFLAKE_TEST_USER)
+      REDSHIFT_TEST_PASS: $(REDSHIFT_TEST_PASS)
+      REDSHIFT_TEST_USER: $(REDSHIFT_TEST_USER)
       REDSHIFT_TEST_PORT: $(REDSHIFT_TEST_PORT)
       REDSHIFT_TEST_HOST: $(REDSHIFT_TEST_HOST)
     displayName: Run integration tests
