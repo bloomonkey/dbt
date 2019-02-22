@@ -63,7 +63,10 @@ jobs:
       git reset --hard HEAD
     displayName: Fix Azure Pipelines ignoring .gitattributes
 
-  - script: C:\Python35\python.exe -m tox -e pywin-postgres
+  - script: |
+      dir C:\
+      dir C:\Python35
+      C:\Python35\python.exe -m tox -e pywin-postgres
     env:
       PYTHON: C:\Python35
     displayName: Run integration tests
